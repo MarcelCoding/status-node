@@ -1,0 +1,139 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        target:
+          # https://doc.rust-lang.org/nightly/rustc/platform-support.html
+          - x86_64-unknown-linux-gnu
+          - aarch64-unknown-linux-gnu
+          - armv7-unknown-linux-gnueabihf
+        channel:
+          - stable
+          - beta
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.channel }}
+          target: ${{ matrix.target }}
+          override: true
+
+      - name: Build
+        uses: actions-rs/cargo@v1
+        continue-on-error: ${{ matrix.channel != 'stable' }}
+        with:
+          use-cross: true
+          command: build
+          args: --release --target=${{ matrix.target }}
+
+#      - name: Strip Debug Symboles
+#        run: strip target/${{ matrix.target }}/release/status-node
+
+      - uses: actions/upload-artifact@v2
+        if: ${{ matrix.channel == 'stable' }}
+        with:
+          name: status-node_${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/status-node
+
+  deb:
+    needs: [ build ]
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        target:
+          # https://doc.rust-lang.org/nightly/rustc/platform-support.html
+          - x86_64-unknown-linux-gnu
+          - aarch64-unknown-linux-gnu
+          - armv7-unknown-linux-gnueabihf
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.target }}
+          override: true
+
+      - name: Install cargo-deb
+        uses: actions-rs/install@v0.1
+        with:
+          crate: cargo-deb
+
+      - name: Build
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --release --target=${{ matrix.target }}
+
+      - name: Create .deb
+        uses: actions-rs/cargo@v1
+        with:
+          command: deb
+          args: --no-build --no-strip --target=${{ matrix.target }}
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: status-node_deb_${{ matrix.target }}
+          path: target/${{ matrix.target }}/debian/*.deb
+
+  rpm:
+    needs: [ build ]
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        target:
+          # https://doc.rust-lang.org/nightly/rustc/platform-support.html
+          - x86_64-unknown-linux-gnu
+          - aarch64-unknown-linux-gnu
+          - armv7-unknown-linux-gnueabihf
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.target }}
+          override: true
+
+      - name: Install cargo-generate-rpm
+        uses: actions-rs/install@v0.1
+        with:
+          crate: cargo-generate-rpm
+
+      - name: Build
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --release --target=${{ matrix.target }}
+
+#      - name: Strip Debug Symboles
+#        run: strip target/${{ matrix.target }}/release/status-node
+
+      - name: Crate .rpm
+        uses: actions-rs/cargo@v1
+        with:
+          command: generate-rpm
+          args: --target=${{ matrix.target }}
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: status-node_rpm_${{ matrix.target }}
+          path: target/${{ matrix.target }}/generate-rpm/*.rpm

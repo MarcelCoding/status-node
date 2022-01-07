@@ -1,0 +1,29 @@
+#cargo-features = ["strip"]
+
+[package]
+name = "status-node"
+version = "0.1.0"
+edition = "2021"
+description = "data collector for https://github.com/themorpheustutorials/status"
+authors = ["Marcel <https://m4rc3l.de>"]
+license = "AGPL-3.0"
+repository = "https://github.com/MarcelCoding/status-node"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+reqwest = { version = "0.11", default-features = false, features = ["rustls-tls", "trust-dns"] }
+tokio = { version = "*", features = ["full"] }
+anyhow = "1.0"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+#strip = true  # Automatically strip symbols from the binary.
+
+[package.metadata.generate-rpm]
+assets = [
+    { source = "target/release/status-node", dest = "/usr/bin/status-node", mode = "0755" },
+    { source = "LICENSE", dest = "/usr/share/doc/status-node/LICENSE", doc = true, mode = "0644" },
+]
