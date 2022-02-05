@@ -1,3 +1,4 @@
+use std::env;
 use std::time::Duration;
 
 use chrono::Utc;
@@ -39,8 +40,14 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn fake_main() -> anyhow::Result<()> {
-    let config_path = "config.yaml";
-    let config = Config::load(config_path).await?;
+    let args: Vec<String> = env::args().collect();
+
+    if args.len() < 2 {
+        eprintln!("You need to specify the path of the config file as first argument.");
+        return Ok(());
+    }
+
+    let config = Config::load(&args[1]).await?;
 
     if config.location.is_none() {
         eprintln!("You need to configure a location.");
