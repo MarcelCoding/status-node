@@ -2,7 +2,7 @@
 
 [package]
 name = "status-node"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2021"
 description = "data collector for https://github.com/themorpheustutorials/status"
 authors = ["Marcel <https://m4rc3l.de>"]
