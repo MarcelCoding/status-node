@@ -1,56 +1,54 @@
-use std::time::{Duration, SystemTime};
+use std::time::Duration;
 
+use anyhow::anyhow;
 use reqwest::{Client, Method, StatusCode};
+use tokio::time::Instant;
+
+use crate::backend::Service;
 
 #[derive(Debug)]
 pub struct Benchmark {
-    initial: Status,
-    alive: Status,
+    pub initial: Status,
+    pub alive: Status,
 }
 
 #[derive(Debug)]
 pub struct Status {
-    status: Option<StatusCode>,
-    ping: u128,
+    pub code: Option<StatusCode>,
+    pub ping: u64,
 }
 
-pub async fn execute(sleep: Duration, method: Method, url: String) -> anyhow::Result<Benchmark> {
-    let client = Client::new();
+pub async fn execute(sleep: Duration, service: &Service) -> anyhow::Result<Benchmark> {
+    let client = Client::builder()
+        .timeout(Duration::from_secs(service.timeout as u64))
+        .build()?;
 
-    let initial = ping(&client, method.clone(), &url).await?;
+    let initial = ping(&client, service.method.clone(), &service.url).await?;
     tokio::time::sleep(sleep).await;
-    let alive = ping(&client, method.clone(), &url).await?;
+    let alive = ping(&client, service.method.clone(), &service.url).await?;
     tokio::time::sleep(sleep).await;
+
+    if initial.code != alive.code {
+        return Err(anyhow!("Different status codes for {}", service.id));
+    }
 
     Ok(Benchmark { initial, alive })
-}
-
-pub async fn verify() -> anyhow::Result<()> {
-    let client = Client::new();
-
-    let response = client.head("https://www.cloudflare.com/")
-        .send()
-        .await?;
-
-    response.error_for_status()?;
-
-    Ok(())
 }
 
 async fn ping(client: &Client, method: Method, url: &String) -> anyhow::Result<Status> {
     let request = client.request(method, url).send();
 
-    let start = SystemTime::now();
+    let start = Instant::now();
     let response = request.await;
-    let time = start.elapsed()?;
+    let time = start.elapsed();
 
-    let status = match response {
+    let code = match response {
         Ok(response) => Some(response.status()),
         Err(error) => error.status(),
     };
 
     Ok(Status {
-        status,
-        ping: time.as_millis(),
+        code,
+        ping: time.as_millis() as u64,
     })
 }

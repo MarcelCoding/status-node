@@ -12,8 +12,17 @@ repository = "https://github.com/MarcelCoding/status-node"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-reqwest = { version = "0.11", default-features = false, features = ["rustls-tls", "trust-dns"] }
+sentry = { version = "0.24", default-features = false, features = ["backtrace", "contexts", "panic", "reqwest", "rustls", "anyhow", "debug-images"] }
+reqwest = { version = "0.11", default-features = false, features = ["rustls-tls", "trust-dns", "json"] }
+redis = { version = "0.21", features = ["tokio-comp"] }
+csv-async = { version = "1.2", features = ["tokio"] }
+chrono = { version = "0.4", features = ["serde"] }
+serde = { version = "*", features = ["derive"] }
 tokio = { version = "*", features = ["full"] }
+async-trait = "0.1"
+tokio-stream = "*"
+serde_yaml = "0.8"
+http-serde = "*"
 anyhow = "1.0"
 
 [profile.release]
