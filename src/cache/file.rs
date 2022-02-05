@@ -29,6 +29,7 @@ impl FileCache {
     async fn open_append_writer(&self) -> anyhow::Result<AsyncSerializer<File>> {
         let file = OpenOptions::new()
             .append(true)
+            .create(true)
             .open(&self.path)
             .await?;
 
@@ -83,6 +84,10 @@ impl Cache for FileCache {
     }
 
     async fn truncate(&self) -> anyhow::Result<()> {
+        if !self.path.exists() {
+            return Ok(());
+        }
+
         File::create(&self.path).await?;
 
         Ok(())
