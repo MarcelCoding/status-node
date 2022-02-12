@@ -11,7 +11,7 @@ const MAX_AGE: u64 = 60 * 30; // 1/2 hour in seconds
 
 #[async_trait::async_trait]
 pub trait Cache {
-    async fn push(&self, pings: &Vec<Ping>) -> anyhow::Result<()>;
+    async fn push(&self, pings: &[Ping]) -> anyhow::Result<()>;
     async fn read_if_old_enough(&self) -> anyhow::Result<Vec<Ping>>;
     async fn truncate(&self) -> anyhow::Result<()>;
 }

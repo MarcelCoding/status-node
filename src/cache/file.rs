@@ -4,7 +4,7 @@ use csv_async::{AsyncDeserializer, AsyncReaderBuilder, AsyncSerializer, AsyncWri
 use tokio::fs::{File, OpenOptions};
 use tokio_stream::StreamExt;
 
-use crate::cache::{Cache, is_old_enough};
+use crate::cache::{is_old_enough, Cache};
 use crate::Ping;
 
 pub struct FileCache {
@@ -13,7 +13,9 @@ pub struct FileCache {
 
 impl FileCache {
     pub fn new(path: String) -> Self {
-        FileCache { path: Path::new(&path).to_owned() }
+        FileCache {
+            path: Path::new(&path).to_owned(),
+        }
     }
 
     async fn open_reader(&self) -> anyhow::Result<AsyncDeserializer<File>> {
@@ -43,7 +45,7 @@ impl FileCache {
 
 #[async_trait::async_trait]
 impl Cache for FileCache {
-    async fn push(&self, pings: &Vec<Ping>) -> anyhow::Result<()> {
+    async fn push(&self, pings: &[Ping]) -> anyhow::Result<()> {
         let writer = &mut self.open_append_writer().await?;
 
         for ping in pings {

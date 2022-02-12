@@ -39,7 +39,7 @@ impl Config {
     async fn default() -> anyhow::Result<Self> {
         let location = match find_location().await {
             Ok(option) => option,
-            Err(_) => None
+            Err(_) => None,
         };
 
         Ok(Config {
@@ -60,9 +60,9 @@ async fn find_location() -> anyhow::Result<Option<String>> {
         .trim()
         .to_string();
 
-    return if location.is_empty() {
+    if location.is_empty() {
         Ok(None)
     } else {
         Ok(Some(location))
-    };
+    }
 }

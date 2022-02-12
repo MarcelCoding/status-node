@@ -1,5 +1,5 @@
+use reqwest::header::{HeaderMap, AUTHORIZATION};
 use reqwest::{Client, Method, StatusCode};
-use reqwest::header::{AUTHORIZATION, HeaderMap};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -17,13 +17,16 @@ pub struct Service {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Incident {
+    pub namespace: String,
     pub service: String,
+    // pub id: u64;
     pub start: u64,
     pub end: Option<u64>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Ping {
+    pub namespace: String,
     pub service: String,
     pub time: u64,
     pub ms: u64,
@@ -47,14 +50,16 @@ pub struct Backend {
 }
 
 impl Backend {
-    pub async fn new(base_url: String, token: Option<String>, location: String) -> anyhow::Result<Self> {
+    pub async fn new(
+        base_url: String,
+        token: Option<String>,
+        location: String,
+    ) -> anyhow::Result<Self> {
         let client = if let Some(token) = token {
             let mut headers = HeaderMap::new();
             headers.insert(AUTHORIZATION, format!("Bearer {token}").parse()?);
 
-            Client::builder()
-                .default_headers(headers)
-                .build()?
+            Client::builder().default_headers(headers).build()?
         } else {
             Client::new()
         };
@@ -70,8 +75,12 @@ impl Backend {
 
     pub async fn update(&mut self) -> anyhow::Result<()> {
         let (services, incidents) = tokio::try_join!(
-            self.client.get(format!("{}/api/services", self.base_url)).send(),
-            self.client.get(format!("{}/api/incidents?filter=active", self.base_url)).send()
+            self.client
+                .get(format!("{}/api/services", self.base_url))
+                .send(),
+            self.client
+                .get(format!("{}/api/incidents?filter=active", self.base_url))
+                .send()
         )?;
 
         let s = services.error_for_status()?.json().await?;
@@ -91,24 +100,27 @@ impl Backend {
         &self.services
     }
 
-    pub fn incidents(&self) -> &Vec<Incident> { &self.incidents }
+    pub fn incidents(&self) -> &Vec<Incident> {
+        &self.incidents
+    }
 
-    pub fn find_incident(&self, service_id: &String) -> Option<&Incident> {
+    pub fn find_incident(&self, namespace_id: &String, service_id: &String) -> Option<&Incident> {
         for incident in &self.incidents {
-            if &incident.service == service_id {
+            if &incident.namespace == namespace_id && &incident.service == service_id {
                 return Some(incident);
             }
         }
 
-        return None;
+        None
     }
 
-    pub async fn publish_incidents(&self, incidents: &Vec<Incident>) -> anyhow::Result<()> {
-        if incidents.len() == 0 {
+    pub async fn publish_incidents(&self, incidents: &[Incident]) -> anyhow::Result<()> {
+        if incidents.is_empty() {
             return Ok(());
         }
 
-        self.client.post(format!("{}/api/incidents", self.base_url))
+        self.client
+            .post(format!("{}/api/incidents", self.base_url))
             .json(incidents)
             .send()
             .await?
@@ -117,12 +129,13 @@ impl Backend {
         Ok(())
     }
 
-    pub async fn publish_pings(&self, pings: &Vec<Ping>) -> anyhow::Result<()> {
-        if pings.len() == 0 {
+    pub async fn publish_pings(&self, pings: &[Ping]) -> anyhow::Result<()> {
+        if pings.is_empty() {
             return Ok(());
         }
 
-        self.client.post(format!("{}/api/pings", self.base_url))
+        self.client
+            .post(format!("{}/api/pings", self.base_url))
             .json(pings)
             .send()
             .await?

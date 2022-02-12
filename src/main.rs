@@ -5,26 +5,29 @@ use chrono::Utc;
 use redis::parse_redis_url;
 use sentry::integrations::anyhow::capture_anyhow;
 
-use crate::backend::{Backend, Incident, Ping};
 use crate::backend::PingKind::{ALIVE, INITIAL};
+use crate::backend::{Backend, Incident, Ping};
 use crate::benchmark::execute;
 use crate::cache::{Cache, FileCache, RedisCache};
 use crate::config::Config;
 
-mod config;
 mod backend;
-mod cache;
 mod benchmark;
+mod cache;
+mod config;
 
 const SENTRY_PROJECT: &str = "6139029";
 const SENTRY_TOKEN: &str = "be2459b57166467d9ff595ac0e0f57a9";
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let _guard = sentry::init((format!("https://{SENTRY_TOKEN}@o1006030.ingest.sentry.io/{SENTRY_PROJECT}"), sentry::ClientOptions {
-        release: sentry::release_name!(),
-        ..Default::default()
-    }));
+    let _guard = sentry::init((
+        format!("https://{SENTRY_TOKEN}@o1006030.ingest.sentry.io/{SENTRY_PROJECT}"),
+        sentry::ClientOptions {
+            release: sentry::release_name!(),
+            ..Default::default()
+        },
+    ));
 
     let result = fake_main().await;
 
@@ -58,7 +61,7 @@ async fn fake_main() -> anyhow::Result<()> {
         Some(location) => match parse_redis_url(&location) {
             Some(url) => Box::new(RedisCache::new(url)?) as Box<dyn Cache>,
             None => Box::new(FileCache::new(location)) as Box<dyn Cache>,
-        }
+        },
         None => {
             eprintln!("You need to configure the cache.");
             return Ok(());
@@ -79,8 +82,9 @@ async fn fake_main() -> anyhow::Result<()> {
         let benchmark = execute(Duration::from_millis(500), service).await?;
 
         if benchmark.initial.code == Some(service.status) {
-            if let Some(active) = backend.find_incident(&service.id) {
+            if let Some(active) = backend.find_incident(&service.namespace, &service.id) {
                 incidents.push(Incident {
+                    namespace: active.namespace.clone(),
                     service: active.service.clone(),
                     start: active.start,
                     end: Some(Utc::now().timestamp() as u64),
@@ -88,6 +92,7 @@ async fn fake_main() -> anyhow::Result<()> {
             }
 
             pings.push(Ping {
+                namespace: service.namespace.clone(),
                 service: service.id.clone(),
                 time: Utc::now().timestamp() as u64,
                 ms: benchmark.initial.ping,
@@ -96,23 +101,30 @@ async fn fake_main() -> anyhow::Result<()> {
             });
 
             pings.push(Ping {
+                namespace: service.namespace.clone(),
                 service: service.id.clone(),
                 time: Utc::now().timestamp() as u64,
                 ms: benchmark.alive.ping,
                 location: backend.location().clone(),
                 kind: Some(ALIVE),
             });
-        } else {
-            if backend.find_incident(&service.id).is_none() {
-                incidents.push(Incident { service: service.id.clone(), start: Utc::now().timestamp() as u64, end: None })
-            }
+        } else if backend
+            .find_incident(&service.namespace, &service.id)
+            .is_none()
+        {
+            incidents.push(Incident {
+                namespace: service.namespace.clone(),
+                service: service.id.clone(),
+                start: Utc::now().timestamp() as u64,
+                end: None,
+            })
         }
     }
 
     println!();
 
     let known_incidents = backend.incidents();
-    if known_incidents.len() == 0 && incidents.len() == 0 {
+    if known_incidents.is_empty() && incidents.is_empty() {
         println!("Currently, everything seems to be up. Good Job!")
     } else {
         println!("Currently, the following services seems to be down:");
@@ -136,7 +148,7 @@ async fn fake_main() -> anyhow::Result<()> {
 
     let mut pings_to_publish = cache.read_if_old_enough().await?;
 
-    if pings_to_publish.len() > 0 {
+    if !pings_to_publish.is_empty() {
         println!("Publishing ping and truncating cache...");
 
         for ping in pings {

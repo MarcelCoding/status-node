@@ -15,7 +15,7 @@ impl RedisCache {
 
 #[async_trait::async_trait]
 impl Cache for RedisCache {
-    async fn push(&self, pings: &Vec<Ping>) -> anyhow::Result<()> {
+    async fn push(&self, pings: &[Ping]) -> anyhow::Result<()> {
         todo!()
     }
 
