@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use anyhow::anyhow;
+use reqwest::redirect::Policy;
 use reqwest::{Client, Method, StatusCode};
 use tokio::time::Instant;
 
@@ -21,6 +22,7 @@ pub struct Status {
 pub async fn execute(sleep: Duration, service: &Service) -> anyhow::Result<Benchmark> {
     let client = Client::builder()
         .timeout(Duration::from_secs(service.timeout as u64))
+        .redirect(Policy::none())
         .build()?;
 
     let initial = ping(&client, service.method.clone(), &service.url).await?;

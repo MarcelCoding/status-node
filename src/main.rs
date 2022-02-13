@@ -84,6 +84,7 @@ async fn fake_main() -> anyhow::Result<()> {
         if benchmark.initial.code == Some(service.status) {
             if let Some(active) = backend.find_incident(&service.namespace, &service.id) {
                 incidents.push(Incident {
+                    id: active.id,
                     namespace: active.namespace.clone(),
                     service: active.service.clone(),
                     start: active.start,
@@ -113,6 +114,7 @@ async fn fake_main() -> anyhow::Result<()> {
             .is_none()
         {
             incidents.push(Incident {
+                id: None,
                 namespace: service.namespace.clone(),
                 service: service.id.clone(),
                 start: Utc::now().timestamp() as u64,
@@ -134,7 +136,7 @@ async fn fake_main() -> anyhow::Result<()> {
 
         for incident in known_incidents {
             for new in &incidents {
-                if incident.service == new.service {
+                if incident.namespace == new.namespace && incident.service == new.service {
                     continue;
                 }
             }

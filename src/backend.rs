@@ -17,9 +17,9 @@ pub struct Service {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Incident {
+    pub id: Option<u64>,
     pub namespace: String,
     pub service: String,
-    // pub id: u64;
     pub start: u64,
     pub end: Option<u64>,
 }
