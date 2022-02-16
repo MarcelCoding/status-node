@@ -79,7 +79,7 @@ async fn fake_main() -> anyhow::Result<()> {
 
     for service in backend.services() {
         println!("Checking {} ({})...", service.id, service.namespace);
-        let benchmark = execute(Duration::from_millis(500), service).await?;
+        let benchmark = execute(Duration::from_millis(500), service, 3).await?;
 
         if benchmark.initial.code == Some(service.status) {
             if let Some(active) = backend.find_incident(&service.namespace, &service.id) {

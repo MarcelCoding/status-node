@@ -19,7 +19,33 @@ pub struct Status {
     pub ping: u64,
 }
 
-pub async fn execute(sleep: Duration, service: &Service) -> anyhow::Result<Benchmark> {
+pub async fn execute(sleep: Duration, service: &Service, tries: u8) -> anyhow::Result<Benchmark> {
+    if tries == 0 {
+        return Err(anyhow!("tries must be more than zero"));
+    }
+
+    let mut error: anyhow::Result<Benchmark> =
+        Err(anyhow!("something went extremely wrong??!?!?!"));
+
+    for _ in 0..tries {
+        match execute_single(sleep, service).await {
+            Ok(benchmark) => {
+                if benchmark.alive.code.is_some() && benchmark.initial.code.is_some() {
+                    return Ok(benchmark);
+                } else {
+                    error = Ok(benchmark);
+                }
+            }
+            err => error = err,
+        }
+
+        tokio::time::sleep(sleep).await;
+    }
+
+    error
+}
+
+async fn execute_single(sleep: Duration, service: &Service) -> anyhow::Result<Benchmark> {
     let client = Client::builder()
         .timeout(Duration::from_secs(service.timeout as u64))
         .redirect(Policy::none())
