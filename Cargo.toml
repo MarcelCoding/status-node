@@ -12,7 +12,7 @@ repository = "https://github.com/MarcelCoding/status-node"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-sentry = { version = "0.24", default-features = false, features = ["backtrace", "contexts", "panic", "reqwest", "rustls", "anyhow", "debug-images"] }
+sentry = { version = "0.25", default-features = false, features = ["backtrace", "contexts", "panic", "reqwest", "rustls", "anyhow", "debug-images"] }
 reqwest = { version = "0.11", default-features = false, features = ["rustls-tls", "trust-dns", "json"] }
 redis = { version = "0.21", features = ["tokio-comp"] }
 csv-async = { version = "1.2", features = ["tokio"] }
