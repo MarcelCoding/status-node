@@ -1,11 +1,11 @@
 use chrono::Utc;
 
 pub use crate::cache::file::FileCache;
-pub use crate::cache::redis::RedisCache;
+// pub use crate::cache::redis::RedisCache;
 use crate::Ping;
 
 mod file;
-mod redis;
+// mod redis;
 
 const MAX_AGE: u64 = 60 * 30; // 1/2 hour in seconds
 

@@ -2,13 +2,12 @@ use std::env;
 use std::time::Duration;
 
 use chrono::Utc;
-use redis::parse_redis_url;
 use sentry::integrations::anyhow::capture_anyhow;
 
-use crate::backend::PingKind::{ALIVE, INITIAL};
 use crate::backend::{Backend, Incident, Ping};
+use crate::backend::PingKind::{ALIVE, INITIAL};
 use crate::benchmark::execute;
-use crate::cache::{Cache, FileCache, RedisCache};
+use crate::cache::{Cache, FileCache};
 use crate::config::Config;
 
 mod backend;
@@ -58,10 +57,10 @@ async fn fake_main() -> anyhow::Result<()> {
     }
 
     let cache = match config.cache {
-        Some(location) => match parse_redis_url(&location) {
+        Some(location) => /*match parse_redis_url(&location) {
             Some(url) => Box::new(RedisCache::new(url)?) as Box<dyn Cache>,
-            None => Box::new(FileCache::new(location)) as Box<dyn Cache>,
-        },
+            None => */FileCache::new(location),
+        //},
         None => {
             eprintln!("You need to configure the cache.");
             return Ok(());
