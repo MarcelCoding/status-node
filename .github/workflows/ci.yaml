@@ -38,9 +38,6 @@ jobs:
           command: build
           args: --release --target=${{ matrix.target }}
 
-#      - name: Strip Debug Symboles
-#        run: strip target/${{ matrix.target }}/release/status-node
-
       - uses: actions/upload-artifact@v2
         if: ${{ matrix.channel == 'stable' }}
         with:
@@ -123,9 +120,6 @@ jobs:
           use-cross: true
           command: build
           args: --release --target=${{ matrix.target }}
-
-#      - name: Strip Debug Symboles
-#        run: strip target/${{ matrix.target }}/release/status-node
 
       - name: Crate .rpm
         uses: actions-rs/cargo@v1
